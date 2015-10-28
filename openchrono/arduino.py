@@ -57,7 +57,7 @@ class _ArduinoBinaryMessage(object):
 
 
 class SensorsArduino(SensorsHardware):
-    def __init__(self, device, baudrate, adc_channels_number):
+    def __init__(self, device, baudrate, adc_channels_number, read_error_exception=False):
         super(SensorsArduino, self).__init__(device, baudrate)
         self._name = "Arduino"
         self._device = device
@@ -65,6 +65,11 @@ class SensorsArduino(SensorsHardware):
         self._bin_msg = _ArduinoBinaryMessage(adc_channels_number=adc_channels_number)
         self._ADC = [AnalogInput() for i in range(adc_channels_number)]
         self._capabilities = ["ADC%d" % i for i in range(adc_channels_number)]
+
+        if read_error_exception:
+            self._read_error = self._read_error_raise_exception
+        else:
+            self._read_error = self._read_error_no_exception
 
     def connect(self):
         self._ser = serial.Serial(self._device, self._baudrate)
@@ -99,7 +104,13 @@ class SensorsArduino(SensorsHardware):
             self._update()
             return True
         else:
-            raise Exception("Incorrect length %d != %d" % (length, expected_length))
+            return self._read_error(length, expected_length)
+
+    def _read_error_no_exception(self, length, expected_length):
+        return False
+        
+    def _read_error_raise_exception(self, length, expected_length):
+        raise Exception("Incorrect length %d != %d" % (length, expected_length))
 
     def _update(self):
         for channel, adc in enumerate(self._ADC):

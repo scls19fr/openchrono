@@ -61,8 +61,8 @@ void loop() {
   Serial.write(0x0d); // \r
   Serial.write(0x0a); // \n
   
-  //Serial.flush();
+  Serial.flush();
   
-  delay(1000);
+  //delay(100);
 }
 
