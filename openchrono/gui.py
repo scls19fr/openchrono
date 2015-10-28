@@ -25,7 +25,7 @@ class MyApplication(QtGui.QApplication):
 
 @click.command()
 @click.option('--device', default='/dev/ttyUSB0', help='device')
-@click.option('--baudrate', default=57600, help='Baudrate')
+@click.option('--baudrate', default=57600, help='Baudrate (9600 14400 19200 28800 38400 57600 115200) - default to 57600')
 def main(device, baudrate):
     app = MyApplication(sys.argv, device=device, baudrate=baudrate)
     sys.exit(app.exec_())

@@ -1,6 +1,11 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+import logging
+import struct
+
+logger = logging.getLogger(__name__)
+
 class ArduinoBinaryMessage(object):
     def __init__(self, adc_channels_number):
         self.max_adc_channels_number = 6

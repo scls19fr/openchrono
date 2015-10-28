@@ -8,6 +8,7 @@ import struct
 import matplotlib.pyplot as plt
 import numpy as np
 import datetime
+import logging
 from numpy_buffer import RingBuffer
 
 from arduino import ArduinoBinaryMessage
@@ -16,15 +17,21 @@ from utils import limit
 #def read_sensors():
 #    pass
 
+logger = logging.getLogger(__name__)
+
 
 @click.command()
 @click.option('--device', default='/dev/ttyUSB0', help='device')
-@click.option('--baudrate', default=57600, help='Baudrate')
+@click.option('--baudrate', default=57600, help='Baudrate (9600 14400 19200 28800 38400 57600 115200) - default to 57600')
 def main(device, baudrate):
     #port = '/dev/ttyUSB0'
     #baudrate = 57600 # 9600 14400 19200 28800 38400 57600 115200
     ser = serial.Serial(device, baudrate)
     ardu_bin_msg = ArduinoBinaryMessage(adc_channels_number=2)
+
+    #sensors00 = Arduino()
+    #sensors00.connect(device=device, baudrate=baudrate, adc_channels_number=2)
+    #sensors00.read()
 
     # reset the arduino
     ser.setDTR(level=False)
