@@ -16,3 +16,7 @@ Linux package requirements
 		python ou python3
 		arduino
 		arduino-mk
+
+Logging
+	use a config file for logger
+
