@@ -11,7 +11,7 @@ import traceback
 from numpy_buffer import RingBuffer
 
 from arduino import SensorsArduino
-from utils import limit
+from utils import linear_function_with_limit
 
 
 logger = logging.getLogger(__name__)
@@ -26,7 +26,7 @@ def main(device, baudrate):
     sensors00 = SensorsArduino(device=device, baudrate=baudrate, adc_channels_number=2)
     print("capabilities: %s" % sensors00.capabilities)
     sensors00.connect()
-    sensors00.ADC[0].calibrate(lambda value: limit(value, 1800.0, 24000.0, 0.0, 100.0))
+    sensors00.ADC[0].calibrate(lambda value: linear_function_with_limit(value, 1800.0, 24000.0, 0.0, 100.0))
         
     maxlen = 100
     data_x = RingBuffer(maxlen, datetime.datetime.utcnow(), dtype=datetime.datetime)

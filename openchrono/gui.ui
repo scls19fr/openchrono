@@ -35,6 +35,58 @@
     <bool>false</bool>
    </property>
   </widget>
+  <widget class="QLabel" name="lblValueLabel">
+   <property name="geometry">
+    <rect>
+     <x>78</x>
+     <y>60</y>
+     <width>71</width>
+     <height>20</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>Value</string>
+   </property>
+  </widget>
+  <widget class="QLabel" name="lblRawValueLabel">
+   <property name="geometry">
+    <rect>
+     <x>78</x>
+     <y>40</y>
+     <width>71</width>
+     <height>20</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>Raw value</string>
+   </property>
+  </widget>
+  <widget class="QLabel" name="lblRawValue">
+   <property name="geometry">
+    <rect>
+     <x>160</x>
+     <y>40</y>
+     <width>59</width>
+     <height>16</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>lblRawValue</string>
+   </property>
+  </widget>
+  <widget class="QLabel" name="lblValue">
+   <property name="geometry">
+    <rect>
+     <x>160</x>
+     <y>60</y>
+     <width>59</width>
+     <height>16</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>lblValue</string>
+   </property>
+  </widget>
  </widget>
  <resources/>
  <connections/>
