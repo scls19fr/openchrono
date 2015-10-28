@@ -1,3 +1,4 @@
 pyserial
 PyQt4
 numpy_buffer
+click
