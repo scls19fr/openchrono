@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+import click
 import sys
 import os
 import logging
@@ -16,12 +17,17 @@ class MainWindow(QtGui.QMainWindow):
 
 class MyApplication(QtGui.QApplication):
     def __init__(self, *args, **kwargs):
+        device = kwargs.pop('device')
+        baudrate = kwargs.pop('baudrate')
         super(MyApplication, self).__init__(*args, **kwargs)
         self.mainWin = MainWindow()
         self.mainWin.show()
 
-def main():
-    app = MyApplication(sys.argv)
+@click.command()
+@click.option('--device', default='/dev/ttyUSB0', help='device')
+@click.option('--baudrate', default=57600, help='Baudrate')
+def main(device, baudrate):
+    app = MyApplication(sys.argv, device=device, baudrate=baudrate)
     sys.exit(app.exec_())
 
 if __name__ == '__main__':

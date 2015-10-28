@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+import click
 import time
 import serial
 import struct
@@ -9,60 +10,20 @@ import numpy as np
 import datetime
 from numpy_buffer import RingBuffer
 
+from arduino import ArduinoBinaryMessage
+from utils import limit
+
 #def read_sensors():
 #    pass
 
-class ArduinoBinaryMessage(object):
-    def __init__(self, adc_channels_number):
-        self.max_adc_channels_number = 6
-        N = min(adc_channels_number, self.max_adc_channels_number)
-        self.allowed_adc_channels = range(N)  # 0->N-1
-        
-        self.format = "BB" + "".join(["H" for i in range(N)]) + "BB"
-        self._size = struct.calcsize(self.format)
-        
-        self._d_calibrate_funcs = {}
-        
-    def parse(self, raw_data):
-        self._raw_data = raw_data
-        self._data = struct.unpack(self.format, raw_data)
 
-    @property
-    def size(self):
-        return self._size
-
-    def _ADC_raw(self, channel):       
-        if channel in self.allowed_adc_channels:
-            return self._data[2 + channel]
-        else:
-            raise Exception("channel=%s must be in %s" % (channel, self.allowed_adc_channels))
-        
-    def ADC(self, channel):
-        value = self._ADC_raw(channel)
-        if channel in self._d_calibrate_funcs.keys():
-            calibrate_func = self._d_calibrate_funcs[channel]
-            return calibrate_func(value)
-        else:
-            return value
-
-    def ADC_calibrate(self, channel, calibrate_func):
-        assert channel in self.allowed_adc_channels, \
-            "channel=%s must be in %s" % (channel, self.allowed_adc_channels)
-        self._d_calibrate_funcs[channel] = calibrate_func
-
-
-def limit(x, xmin, xmax, ymin, ymax):
-    y = (ymax - ymin) / (xmax - xmin) * (x - xmin) + ymin
-    if y < ymin:
-        return ymin
-    if y > ymax:
-        return ymax
-    return y
-
-def main():
-    port = '/dev/ttyUSB0'
-    baudrate = 57600 # 9600 14400 19200 28800 38400 57600 115200
-    ser = serial.Serial(port, baudrate)
+@click.command()
+@click.option('--device', default='/dev/ttyUSB0', help='device')
+@click.option('--baudrate', default=57600, help='Baudrate')
+def main(device, baudrate):
+    #port = '/dev/ttyUSB0'
+    #baudrate = 57600 # 9600 14400 19200 28800 38400 57600 115200
+    ser = serial.Serial(device, baudrate)
     ardu_bin_msg = ArduinoBinaryMessage(adc_channels_number=2)
 
     # reset the arduino
