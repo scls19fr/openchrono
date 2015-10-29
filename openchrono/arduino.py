@@ -64,7 +64,7 @@ class SensorsArduino(SensorsHardware):
         self._baudrate = baudrate
         self._timeout = 1
         self._bin_msg = _ArduinoBinaryMessage(adc_channels_number=adc_channels_number)
-        self._ADC = [AnalogInput() for i in range(adc_channels_number)]
+        self._ADC = [AnalogInput(bits_resolution=10) for i in range(adc_channels_number)]
         self._capabilities = ["ADC%d" % i for i in range(adc_channels_number)]
 
         if read_error_exception:

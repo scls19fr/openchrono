@@ -2,14 +2,15 @@
 # -*- coding: utf-8 -*-
 
 class AnalogInput(object):
-    def __init__(self):
-        self._func = None
+    def __init__(self, bits_resolution=None):
+        self._calibrate_func = lambda x: x  # identity
         self._raw_value = None
         self._value = None
         self.has_new_data = False
+        self.bits_resolution = bits_resolution
 
     def calibrate(self, func):
-        self._func = func
+        self._calibrate_func = func
 
     @property
     def value(self):
@@ -23,8 +24,8 @@ class AnalogInput(object):
 
     def _update(self, new_raw_val):
         self._raw_value = new_raw_val
-        if self._func is not None:
-            self._value = self._func(self._raw_value)
+        #if self._calibrate_func is not None:
+        self._value = self._calibrate_func(self._raw_value)
         self.has_new_data = True
 
     def __repr__(self):
