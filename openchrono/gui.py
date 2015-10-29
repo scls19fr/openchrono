@@ -10,6 +10,10 @@ import numpy as np
 from PyQt4 import QtGui, QtCore, uic
 from utils import limit
 
+
+from arduino import SensorsArduino
+from utils import linear_function_with_limit
+
 logger = logging.getLogger(__name__)
 
 
@@ -21,9 +25,10 @@ class MainWindow(QtGui.QMainWindow):
 
     def update(self, sensors):
         logger.info("update MainWindow with %s" % sensors)
-        self.progressBar.setValue(sensors)
-        self.lblRawValue.setText("%.1f" % sensors)
-        self.lblValue.setText("%.1f" % sensors)
+        ai0 = sensors.ADC[0]
+        self.progressBar.setValue(ai0.value)
+        self.lblRawValue.setText("%.1f" % ai0.raw)
+        self.lblValue.setText("%.1f" % ai0.value)
 
 
 class MyApplication(QtGui.QApplication):
@@ -35,11 +40,14 @@ class MyApplication(QtGui.QApplication):
         self.t = datetime.datetime.utcnow()
         self.t_last = self.t
 
-        self.sensors = 50.0
+        #self.sensors = 50.0
+        self.sensors00 = SensorsArduino(device=device, baudrate=baudrate, adc_channels_number=2, read_error_exception=True)
+        self.sensors00.connect()
+        self.sensors00.ADC[0].calibrate(lambda value: linear_function_with_limit(value, 520.0, 603.0, 0.0, 100.0))
 
         self.timer = QtCore.QTimer()
         self.timer.timeout.connect(self.update)
-        period_disp_ms = 40
+        period_disp_ms = 50
         logging.info("period_disp_ms: %f" % period_disp_ms)
         self.timer.start(period_disp_ms)
 
@@ -48,10 +56,14 @@ class MyApplication(QtGui.QApplication):
 
     def update(self):
         self.t = datetime.datetime.utcnow()
-        self.sensors = limit(self.sensors + np.random.uniform(-5, 5), 0.0, 100.0)
-        logger.info("update %s %s %s %s" % (self.t, self.t_last, self.t - self.t_last, self.sensors))
-        self.mainWin.update(self.sensors)
-        self.t_last = self.t
+
+        #self.sensors = limit(self.sensors + np.random.uniform(-5, 5), 0.0, 100.0)
+
+        if self.sensors00.read():
+            logger.info("update %s %s %s %s" % (self.t, self.t_last, self.t - self.t_last, self.sensors00.ADC[0]))
+            self.mainWin.update(self.sensors00)
+            
+            self.t_last = self.t
 
 @click.command()
 @click.option('--device', default='/dev/ttyUSB0', help='device')

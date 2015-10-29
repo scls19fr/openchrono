@@ -62,6 +62,7 @@ class SensorsArduino(SensorsHardware):
         self._name = "Arduino"
         self._device = device
         self._baudrate = baudrate
+        self._timeout = 1
         self._bin_msg = _ArduinoBinaryMessage(adc_channels_number=adc_channels_number)
         self._ADC = [AnalogInput() for i in range(adc_channels_number)]
         self._capabilities = ["ADC%d" % i for i in range(adc_channels_number)]
@@ -72,7 +73,7 @@ class SensorsArduino(SensorsHardware):
             self._read_error = self._read_error_no_exception
 
     def connect(self):
-        self._ser = serial.Serial(self._device, self._baudrate)
+        self._ser = serial.Serial(self._device, self._baudrate, timeout=self._timeout)
 
         # reset the arduino
         self._ser.setDTR(level=False)
@@ -93,6 +94,7 @@ class SensorsArduino(SensorsHardware):
                 break
         self._ser.flushInput()
         self._ser.write(b'\x10')
+        #self._ser.flushInput()
 
         logger.info("Connected to %s %s" % (self._name, self._device))
 
@@ -102,6 +104,7 @@ class SensorsArduino(SensorsHardware):
         if length == expected_length:
             self._bin_msg.parse(raw_data)
             self._update()
+            self._ser.flushInput()
             return True
         else:
             return self._read_error(length, expected_length)

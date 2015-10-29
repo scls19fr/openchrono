@@ -51,18 +51,18 @@ void loop() {
   Serial.write(0x07);
   Serial.write(0x00); // sensors board id
   
-  Serial.write(highByte(sensor0));
   Serial.write(lowByte(sensor0));
+  Serial.write(highByte(sensor0));
 
-  Serial.write(highByte(sensor1));
   Serial.write(lowByte(sensor1));
+  Serial.write(highByte(sensor1));
   //Serial.write(0x99);
   
   Serial.write(0x0d); // \r
   Serial.write(0x0a); // \n
   
-  Serial.flush();
+  //Serial.flush();
   
-  //delay(100);
+  delay(200);
 }
 

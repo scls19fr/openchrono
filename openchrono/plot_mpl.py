@@ -26,7 +26,7 @@ def main(device, baudrate):
     sensors00 = SensorsArduino(device=device, baudrate=baudrate, adc_channels_number=2)
     print("capabilities: %s" % sensors00.capabilities)
     sensors00.connect()
-    sensors00.ADC[0].calibrate(lambda value: linear_function_with_limit(value, 1800.0, 24000.0, 0.0, 100.0))
+    sensors00.ADC[0].calibrate(lambda value: linear_function_with_limit(value, 520.0, 603.0, 0.0, 100.0))
         
     maxlen = 100
     data_x = RingBuffer(maxlen, datetime.datetime.utcnow(), dtype=datetime.datetime)
@@ -43,7 +43,7 @@ def main(device, baudrate):
     while True:
         t = datetime.datetime.utcnow()
         try:
-            if sensors00.read():
+            if sensors00.read() and sensors00.ADC[0].has_new_data:
                 print(sensors00._bin_msg._data)
                 y = sensors00.ADC[0].value
                 #y = limit(y, 1800.0, 24000.0, 0.0, 100.0)
