@@ -42,7 +42,7 @@ class MainWindow(QtGui.QMainWindow):
         self.progressBar.setValue(self.ai.value)
         self.lblRawValue.setText("%.1f" % self.ai.raw)
         self.lblValue.setText("%.1f" % self.ai.value)
-        pen = pg.mkPen('g', style=QtCore.Qt.SolidLine)
+        self.cal_plot.plot([self.ai.raw], [self.ai.value], pen=None, symbol='o')
 
         #self.dot_plot.plot(self.ai.raw, self.ai.value)
         #self.cal_plot.plot((0, float(self.ai.raw)), (0, self.ai.value), pen=pen, symbol='+')
