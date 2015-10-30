@@ -1,0 +1,6 @@
+---
+  hardware: 
+    sensor00: 
+      hw_type: "arduino"
+      device: "/dev/ttyUSB0"
+      baudrate: 57600
