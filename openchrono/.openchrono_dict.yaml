@@ -1,5 +1,5 @@
 ---
-  hardware: 
+  sensors: 
     sensor00: 
       hw_type: "arduino"
       device: "/dev/ttyUSB0"
