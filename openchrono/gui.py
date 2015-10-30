@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import click
 import sys
 import os
 import logging
@@ -27,6 +26,8 @@ class MainWindow(QtGui.QMainWindow):
             "calibrate.ui"), self)
 
         self.cal_plot = pg.PlotWidget()
+        delta_y = 5
+        self.cal_plot.setYRange(-delta_y, 100 + delta_y)
         self.gridLayout.addWidget(self.cal_plot)
 
         self.plot_calibrate_func()
@@ -36,13 +37,14 @@ class MainWindow(QtGui.QMainWindow):
         N = 2**self.ai.bits_resolution  # ADC resolution = 10 bits = 2**10 = 1024
         self.cal_plot.plot(np.arange(1024), [self.ai._calibrate_func(i) for i in range(N)], pen=pen)
         #self.dot_plot.plot()
+        self.dot = self.cal_plot.plot([self.ai.raw], [self.ai.value], pen=None, symbol='o')
 
     def update(self): #, sensors):
         logger.info("update MainWindow with %s" % self.ai)
         self.progressBar.setValue(self.ai.value)
         self.lblRawValue.setText("%.1f" % self.ai.raw)
         self.lblValue.setText("%.1f" % self.ai.value)
-        self.cal_plot.plot([self.ai.raw], [self.ai.value], pen=None, symbol='o')
+        self.dot.setData(x=[self.ai.raw], y=[self.ai.value])
 
         #self.dot_plot.plot(self.ai.raw, self.ai.value)
         #self.cal_plot.plot((0, float(self.ai.raw)), (0, self.ai.value), pen=pen, symbol='+')
@@ -92,7 +94,17 @@ class MyApplication(QtGui.QApplication):
 @click.option('--baudrate', default=57600, help='Baudrate (9600 14400 19200 28800 38400 57600 115200) - default to 57600')
 def main(device, baudrate):
     logging.basicConfig(level=logging.INFO)
+
+    # Set PyQtGraph colors
+    pg.setConfigOption('background', 'w')
+    pg.setConfigOption('foreground', 'k')
+
+    # Enable antialiasing for prettier plots
+    pg.setConfigOptions(antialias=True)
+  
+
     app = MyApplication(sys.argv, device=device, baudrate=baudrate)
+    
     sys.exit(app.exec_())
 
 if __name__ == '__main__':

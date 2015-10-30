@@ -6,86 +6,72 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>404</width>
-    <height>279</height>
+    <width>831</width>
+    <height>591</height>
    </rect>
   </property>
   <property name="windowTitle">
    <string>Form</string>
   </property>
-  <widget class="QProgressBar" name="progressBar">
+  <widget class="QWidget" name="">
    <property name="geometry">
     <rect>
-     <x>30</x>
-     <y>30</y>
-     <width>51</width>
-     <height>211</height>
+     <x>10</x>
+     <y>66</y>
+     <width>208</width>
+     <height>101</height>
     </rect>
    </property>
-   <property name="value">
-    <number>24</number>
-   </property>
-   <property name="textVisible">
-    <bool>true</bool>
-   </property>
-   <property name="orientation">
-    <enum>Qt::Vertical</enum>
-   </property>
-   <property name="invertedAppearance">
-    <bool>false</bool>
-   </property>
-  </widget>
-  <widget class="QLabel" name="lblValueLabel">
-   <property name="geometry">
-    <rect>
-     <x>78</x>
-     <y>60</y>
-     <width>71</width>
-     <height>20</height>
-    </rect>
-   </property>
-   <property name="text">
-    <string>Value</string>
-   </property>
-  </widget>
-  <widget class="QLabel" name="lblRawValueLabel">
-   <property name="geometry">
-    <rect>
-     <x>78</x>
-     <y>40</y>
-     <width>71</width>
-     <height>20</height>
-    </rect>
-   </property>
-   <property name="text">
-    <string>Raw value</string>
-   </property>
-  </widget>
-  <widget class="QLabel" name="lblRawValue">
-   <property name="geometry">
-    <rect>
-     <x>160</x>
-     <y>40</y>
-     <width>59</width>
-     <height>16</height>
-    </rect>
-   </property>
-   <property name="text">
-    <string>lblRawValue</string>
-   </property>
-  </widget>
-  <widget class="QLabel" name="lblValue">
-   <property name="geometry">
-    <rect>
-     <x>160</x>
-     <y>60</y>
-     <width>59</width>
-     <height>16</height>
-    </rect>
-   </property>
-   <property name="text">
-    <string>lblValue</string>
-   </property>
+   <layout class="QHBoxLayout" name="horizontalLayout">
+    <item>
+     <widget class="QProgressBar" name="progressBar">
+      <property name="value">
+       <number>24</number>
+      </property>
+      <property name="textVisible">
+       <bool>true</bool>
+      </property>
+      <property name="orientation">
+       <enum>Qt::Vertical</enum>
+      </property>
+      <property name="invertedAppearance">
+       <bool>false</bool>
+      </property>
+     </widget>
+    </item>
+    <item>
+     <layout class="QGridLayout" name="gridLayout">
+      <item row="2" column="0">
+       <widget class="QLabel" name="lblValueLabel">
+        <property name="text">
+         <string>Value</string>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="0">
+       <widget class="QLabel" name="lblRawValueLabel">
+        <property name="text">
+         <string>Raw value</string>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="1">
+       <widget class="QLabel" name="lblRawValue">
+        <property name="text">
+         <string>lblRawValue</string>
+        </property>
+       </widget>
+      </item>
+      <item row="2" column="1">
+       <widget class="QLabel" name="lblValue">
+        <property name="text">
+         <string>lblValue</string>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </item>
+   </layout>
   </widget>
  </widget>
  <resources/>
