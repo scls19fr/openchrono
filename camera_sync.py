@@ -4,6 +4,7 @@
 import click
 import picamera
 import time
+import datetime
 
 VIDEOFPS = 25
 VIDEOHEIGHT = 1080
@@ -33,9 +34,10 @@ def main(vflip, hflip, video_stabilization, video_filename, video_preview):
             print("Recording - started pi camera")
             try:
                 while(True):
-                    print("data in the loop")
-                    #framenumber = camera.frame
-                    #print(framenumber)
+                    now = datetime.datetime.utcnow()
+                    print("data in the loop @ %s" % now)
+                    framenumber = camera.frame
+                    print(framenumber)
                     time.sleep(0.1)
 
             except KeyboardInterrupt:
