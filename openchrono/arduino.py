@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+import click
+
 import logging
 import struct
 import serial
@@ -17,7 +19,7 @@ class SensorsHardware(object):
     def connect(self):
         pass
 
-    def read(self):
+    def update(self):
         pass
 
     def get(self, key):
@@ -55,9 +57,47 @@ class _ArduinoBinaryMessage(object):
         else:
             raise Exception("channel=%s must be in %s" % (channel, self.allowed_adc_channels))
 
+import threading
+
+
+class SensorThread(threading.Thread):
+    def __init__(self, sensor, time_to_sleep):
+        threading.Thread.__init__(self)
+        
+        self.sensor = sensor
+        self.time_to_sleep = time_to_sleep
+
+        #set to not running
+        self.running = False
+
+        #self.update()
+        
+    def stop(self):
+        self.running = False            
+
+    def restart(self):
+        if not self.running:
+            self.running = True
+        else:
+            raise Exception("Can't restart - thread was ever running")
+    
+    def run(self):
+        #loop until it's set to stopped
+        self.running = True
+        while(self.running):
+            #update data
+            self.sensor.update()
+            #sleep
+            time.sleep(self.time_to_sleep)
+            self.running = False
+    
+    def update(self):
+        raise NotImplementedError("Must be implmented in inherit class")
+
 
 class SensorsArduino(SensorsHardware):
-    def __init__(self, device, baudrate, adc_channels_number, read_error_exception=False):
+    def __init__(self, device, baudrate, adc_channels_number, update_error_exception=False):
+        
         super(SensorsArduino, self).__init__(device, baudrate)
         self._name = "Arduino"
         self._device = device
@@ -67,10 +107,10 @@ class SensorsArduino(SensorsHardware):
         self._ADC = [AnalogInput(bits_resolution=10) for i in range(adc_channels_number)]
         self._capabilities = ["ADC%d" % i for i in range(adc_channels_number)]
 
-        if read_error_exception:
-            self._read_error = self._read_error_raise_exception
+        if update_error_exception:
+            self._update_error = self._update_error_raise_exception
         else:
-            self._read_error = self._read_error_no_exception
+            self._update_error = self._update_error_no_exception
 
     def connect(self):
         self._ser = serial.Serial(self._device, self._baudrate, timeout=self._timeout)
@@ -98,24 +138,24 @@ class SensorsArduino(SensorsHardware):
 
         logger.info("Connected to %s %s" % (self._name, self._device))
 
-    def read(self):
+    def update(self):
         raw_data = self._ser.readline()
         length, expected_length = len(raw_data), self._bin_msg.size
         if length == expected_length:
             self._bin_msg.parse(raw_data)
-            self._update()
+            self._update_channels()
             self._ser.flushInput()
             return True
         else:
-            return self._read_error(length, expected_length)
+            return self._update_error(length, expected_length)
 
-    def _read_error_no_exception(self, length, expected_length):
+    def _update_error_no_exception(self, length, expected_length):
         return False
         
-    def _read_error_raise_exception(self, length, expected_length):
+    def _update_error_raise_exception(self, length, expected_length):
         raise Exception("Incorrect length %d != %d" % (length, expected_length))
 
-    def _update(self):
+    def _update_channels(self):
         for channel, adc in enumerate(self._ADC):
             self._ADC[channel]._update(self._bin_msg.ADC(channel))
 
@@ -125,3 +165,62 @@ class SensorsArduino(SensorsHardware):
     @property
     def ADC(self):
         return self._ADC
+
+def main_without_thread(device, baudrate):
+    import datetime
+    import traceback
+    from utils import linear_function_with_limit
+    
+    logging.basicConfig(level=logging.INFO)
+    
+    sensors00 = SensorsArduino(device=device, baudrate=baudrate, adc_channels_number=2)
+    print("capabilities: %s" % sensors00.capabilities)
+    sensors00.connect()
+    sensors00.ADC[0].calibrate(lambda value: linear_function_with_limit(value, 520.0, 603.0, 0.0, 100.0))
+    
+    #start up sensors controller thread
+    #sensors00.start()
+
+    t_last = datetime.datetime.utcnow()
+    try:
+        while True:
+            t = datetime.datetime.utcnow()
+            if sensors00.update() and sensors00.ADC[0].has_new_data:
+                print(sensors00._bin_msg._data)
+                ai0 = sensors00.ADC[0]
+                y_raw = ai0.raw
+                y = ai0.value
+                logger.info("%s %s %s" % (t, y, t - t_last))
+            t_last = t
+    except KeyboardInterrupt:
+        print("Cancelled by user (CTRL+C)")
+    except Exception as e:
+        logger.error(traceback.format_exc())
+        #raise e
+    finally:
+        print("Stopping sensors controller")
+        #stop the controller
+        #sensors00.stop()
+        #wait for the tread to finish if it hasn't already
+        #sensors00.join()        
+    
+    print("Done")
+    
+    return
+
+def main_with_thread(device, baudrate):
+    return
+
+@click.command()
+@click.option('--device', default='/dev/ttyUSB0', help='device')
+@click.option('--baudrate', default=57600, help='Baudrate (9600 14400 19200 28800 38400 57600 115200) - default to 57600')
+@click.option('--thread/--no-thread', default=False, help='Run with or without thread')
+def main(device, baudrate, thread):
+    if not thread:
+        return main_without_thread(device, baudrate)
+    else:
+        return main_with_thread(device, baudrate)
+
+if __name__ == '__main__':
+    main()
+

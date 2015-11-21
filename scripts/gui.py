@@ -65,7 +65,7 @@ class MyApplication(QtGui.QApplication):
         self.t_last = self.t
 
         #self.sensors = 50.0
-        self.sensors00 = SensorsArduino(device=device, baudrate=baudrate, adc_channels_number=2, read_error_exception=False)
+        self.sensors00 = SensorsArduino(device=device, baudrate=baudrate, adc_channels_number=2, update_error_exception=False)
         self.sensors00.connect()
         ai = self.sensors00.ADC[0]
         ai.calibrate(lambda value: linear_function_with_limit(value, 520.0, 603.0, 0.0, 100.0))
@@ -85,7 +85,7 @@ class MyApplication(QtGui.QApplication):
 
         #self.sensors = limit(self.sensors + np.random.uniform(-5, 5), 0.0, 100.0)
 
-        if self.sensors00.read():
+        if self.sensors00.update():
             logger.info("update %s %s %s %s" % (self.t, self.t_last, self.t - self.t_last, self.sensors00.ADC[0]))
             self.mainWin.update() #self.sensors00)
             
