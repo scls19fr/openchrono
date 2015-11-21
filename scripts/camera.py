@@ -14,7 +14,7 @@ VIDEOWIDTH = 1920
 @click.option('--vflip/--no-vflip', default=False, help="Video vertical flip")
 @click.option('--hflip/--no-hflip', default=False, help="Video horizontal flip")
 @click.option('--video-stabilization/--no-video-stabilization', default=True, help="Video stabilization")
-@click.option('--video-filename', default='vid.h264', help="Video filename (open with omxplayer)")
+@click.option('--video-filename', default='video.h264', help="Video filename (open with omxplayer)")
 @click.option('--video-preview/--no-video-preview', default=True, help="Video preview")
 def main(vflip, hflip, video_stabilization, video_filename, video_preview):
     with picamera.PiCamera() as camera:

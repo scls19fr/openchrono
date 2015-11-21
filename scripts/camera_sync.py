@@ -22,17 +22,21 @@ VIDEOWIDTH = 1920
 @click.option('--video-stabilization/--no-video-stabilization', default=True, help="Video stabilization")
 @click.option('--data-folder', default='~/data', help="Data folder")
 @click.option('--data-filename', default='data.csv', help="Data filename (CSV file)")
-@click.option('--video-filename', default='vid.h264', help="Video filename (open with omxplayer)")
+@click.option('--video-filename', default='video.h264', help="Video filename (open with omxplayer)")
 @click.option('--video-preview/--no-video-preview', default=True, help="Video preview")
 @click.option('--device', default='/dev/ttyUSB0', help='device')
 @click.option('--baudrate', default=57600, help='Baudrate (9600 14400 19200 28800 38400 57600 115200) - default to 57600')
+@click.option('--erase/--no-erase', default=False, help='Erase data (video and csv)')
 def main(vflip, hflip, video_stabilization, data_folder, data_filename, video_filename, video_preview, 
-    device, baudrate):
+    device, baudrate, erase):
     s_now = datetime.datetime.utcnow().strftime("%Y%m%d-%H%M%S-%f")
     
-    data_folder = os.path.join(os.path.expanduser(data_folder), s_now)
-    if not os.path.exists(data_folder):
-        os.makedirs(data_folder)
+    data_folder = os.path.expanduser(data_folder)
+    
+    if not erase:
+        data_folder = os.path.join(data_folder, s_now)
+        if not os.path.exists(data_folder):
+            os.makedirs(data_folder)
 
 
     sensors00 = SensorsArduino(device=device, baudrate=baudrate, adc_channels_number=2)
@@ -69,12 +73,15 @@ def main(vflip, hflip, video_stabilization, data_folder, data_filename, video_fi
                     framenumber = camera.frame.index
                     print(framenumber)
                     
-                    if sensors00.update() and sensors00.ADC[0].has_new_data:
-                        ai0 = sensors00.ADC[0]
+                    to_append = False
+                    ai0 = sensors00.ADC[0]
+                    if sensors00.update() and not ai0.has_same_value: #and ai0.has_new_data: #ai0.has_same_raw_value
+                        to_append = True
                     
-                        data.append(now, framenumber, ai0.value)
+                    if to_append:
+                        data.append(now, framenumber, ai0.value) # ai0.raw or ai0.value
                     
-                    time.sleep(0.1)
+                    time.sleep(0.01)
 
             except KeyboardInterrupt:
                 print("User Cancelled (Ctrl C)")
