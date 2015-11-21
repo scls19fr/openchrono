@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+from __future__ import print_function, absolute_import
+
 class AnalogInput(object):
     def __init__(self, bits_resolution=None):
         self._calibrate_func = lambda x: x  # identity

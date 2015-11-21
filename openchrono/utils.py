@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+from __future__ import print_function, absolute_import
+
 def linear_function_with_limit(x, xmin, xmax, ymin, ymax):
     y = (ymax - ymin) / (xmax - xmin) * (x - xmin) + ymin
     if y < ymin:

@@ -1,13 +1,16 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+from __future__ import print_function, absolute_import
+
 import click
 
 import logging
 import struct
 import serial
 import time
-from analog import AnalogInput
+
+from .analog import AnalogInput
 
 logger = logging.getLogger(__name__)
 

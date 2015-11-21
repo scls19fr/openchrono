@@ -9,11 +9,11 @@ import logging
 import datetime
 import numpy as np
 from PyQt4 import QtGui, QtCore, uic
-from utils import limit
 
 
-from arduino import SensorsArduino
-from utils import linear_function_with_limit
+from openchrono import arduino
+from openchrono.utils import limit
+from openchrono.utils import linear_function_with_limit
 
 import pyqtgraph as pg
 
@@ -65,7 +65,7 @@ class MyApplication(QtGui.QApplication):
         self.t_last = self.t
 
         #self.sensors = 50.0
-        self.sensors00 = SensorsArduino(device=device, baudrate=baudrate, adc_channels_number=2, update_error_exception=False)
+        self.sensors00 = arduino.SensorsArduino(device=device, baudrate=baudrate, adc_channels_number=2, update_error_exception=False)
         self.sensors00.connect()
         ai = self.sensors00.ADC[0]
         ai.calibrate(lambda value: linear_function_with_limit(value, 520.0, 603.0, 0.0, 100.0))

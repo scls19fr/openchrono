@@ -7,10 +7,9 @@ import datetime
 import logging
 import traceback
 
-from numpy_buffer import RingBuffer
-
-from arduino import SensorsArduino
-from utils import linear_function_with_limit
+import openchrono
+from openchrono.arduino import SensorsArduino
+from openchrono.utils import linear_function_with_limit
 
 
 logger = logging.getLogger(__name__)
