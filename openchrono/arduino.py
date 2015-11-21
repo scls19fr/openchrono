@@ -10,7 +10,7 @@ import struct
 import serial
 import time
 
-from analog import AnalogInput
+from openchrono.analog import AnalogInput
 
 logger = logging.getLogger(__name__)
 
@@ -226,7 +226,7 @@ def main_with_thread(device, baudrate, update_error_exception):
     
     #start up sensors controller thread
     sensors00.thread.start()
-    sensors00.thread.running = True
+    #sensors00.thread.running = True
 
     t_last = datetime.datetime.utcnow()
     try:

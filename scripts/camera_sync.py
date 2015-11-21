@@ -2,9 +2,15 @@
 # -*- coding: utf8 -*-
 
 import click
+
+import os
 import picamera
 import time
 import datetime
+
+from openchrono.databuffer import DataBuffer
+from openchrono.arduino import SensorsArduino
+from openchrono.utils import linear_function_with_limit
 
 VIDEOFPS = 25
 VIDEOHEIGHT = 1080
@@ -14,9 +20,27 @@ VIDEOWIDTH = 1920
 @click.option('--vflip/--no-vflip', default=False, help="Video vertical flip")
 @click.option('--hflip/--no-hflip', default=False, help="Video horizontal flip")
 @click.option('--video-stabilization/--no-video-stabilization', default=True, help="Video stabilization")
+@click.option('--data-folder', default='~/data', help="Data folder")
+@click.option('--data-filename', default='data.csv', help="Data filename (CSV file)")
 @click.option('--video-filename', default='vid.h264', help="Video filename (open with omxplayer)")
 @click.option('--video-preview/--no-video-preview', default=True, help="Video preview")
-def main(vflip, hflip, video_stabilization, video_filename, video_preview):
+@click.option('--device', default='/dev/ttyUSB0', help='device')
+@click.option('--baudrate', default=57600, help='Baudrate (9600 14400 19200 28800 38400 57600 115200) - default to 57600')
+def main(vflip, hflip, video_stabilization, data_folder, data_filename, video_filename, video_preview, 
+    device, baudrate):
+    s_now = datetime.datetime.utcnow().strftime("%Y%m%d-%H%M%S-%f")
+    
+    data_folder = os.path.join(os.path.expanduser(data_folder), s_now)
+    if not os.path.exists(data_folder):
+        os.makedirs(data_folder)
+
+
+    sensors00 = SensorsArduino(device=device, baudrate=baudrate, adc_channels_number=2)
+    print("capabilities: %s" % sensors00.capabilities)
+    sensors00.connect()
+    sensors00.ADC[0].calibrate(lambda value: linear_function_with_limit(value, 520.0, 603.0, 0.0, 100.0))
+
+    
     with picamera.PiCamera() as camera:
         #turn LED on
         #led.on()
@@ -30,21 +54,33 @@ def main(vflip, hflip, video_stabilization, video_filename, video_preview):
 
         if video_preview:
             camera.start_preview()
-        camera.start_recording(video_filename) #, inline_headers=False)
-        print("Recording - started pi camera")
-        try:
-            while(True):
-                now = datetime.datetime.utcnow()
-                print("data in the loop @ %s" % now)
-                framenumber = camera.frame
-                print(framenumber)
-                time.sleep(0.1)
+        
+        with DataBuffer(os.path.join(data_folder, data_filename)) as data:
+            data.columns = ["t", "frame", "position"]
+            
+            camera.start_recording(os.path.join(data_folder, video_filename)) #, inline_headers=False)
+            print("Recording - started pi camera")
+            try:
+                while(True):
+                    now = datetime.datetime.utcnow()
+                    
+                    print("data in the loop @ %s" % now)
+                    
+                    framenumber = camera.frame.index
+                    print(framenumber)
+                    
+                    if sensors00.update() and sensors00.ADC[0].has_new_data:
+                        ai0 = sensors00.ADC[0]
+                    
+                        data.append(now, framenumber, ai0.value)
+                    
+                    time.sleep(0.1)
 
-        except KeyboardInterrupt:
-            print("User Cancelled (Ctrl C)")
-            camera.stop_recording()
-            if video_preview:
-                camera.stop_preview()
+            except KeyboardInterrupt:
+                print("User Cancelled (Ctrl C)")
+                camera.stop_recording()
+                if video_preview:
+                    camera.stop_preview()
 
 if __name__ == "__main__":
     main()

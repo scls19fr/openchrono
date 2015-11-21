@@ -1,3 +1,3 @@
-#!/usr/nin/env bash
+#!/usr/bin/env bash
 
 sudo python setup.py install
