@@ -15,7 +15,9 @@ COL_T = 't'
 @click.option('--max_rows', default=20, help='Pandas display.max_rows')
 @click.option('--plots', default='', help='Plot (frame, position...)')
 @click.option('--stacked/--no-stacked', default=True, help='Stacked plot')
-def main(directory, max_rows, plots, stacked):
+@click.option('--style-line', default='b-', help='Style')
+@click.option('--style-dots', default='g+', help='Style')
+def main(directory, max_rows, plots, stacked, style_line, style_dots):
     directory = os.path.expanduser(directory)
     filename = os.path.join(directory, 'data.csv')
     print("Reading %r" % filename)
@@ -36,12 +38,13 @@ def main(directory, max_rows, plots, stacked):
     
         for i, plot in enumerate(plots):
             ax = axs[i]
-            ax.plot(df.index, df[plot])
+            ax.plot(df.index, df[plot], style_line)
+            ax.plot(df.index, df[plot], style_dots)
             ax.set_xlabel(COL_T) #, fontdict=font)
             ax.set_ylabel(plot)
             #ax.set_title(plot)
     else:
-        ax = df[plots].plot(style='-+')
+        ax = df[plots].plot(style=style)
 
     plt.show()
 
