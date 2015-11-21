@@ -13,8 +13,9 @@ COL_T = 't'
 @click.command()
 @click.argument('directory')
 @click.option('--max_rows', default=20, help='Pandas display.max_rows')
-@click.option('--plot', default='', help='Plot (frame, position...)')
-def main(directory, max_rows, plot):
+@click.option('--plots', default='', help='Plot (frame, position...)')
+@click.option('--stacked/--no-stacked', default=True, help='Stacked plot')
+def main(directory, max_rows, plots, stacked):
     directory = os.path.expanduser(directory)
     filename = os.path.join(directory, 'data.csv')
     print("Reading %r" % filename)
@@ -25,12 +26,23 @@ def main(directory, max_rows, plot):
     df = df.set_index(COL_T)
     print(df)
 
-    if plot == '':
-        plot = df.columns
+    if plots == '':
+        plots = df.columns
     else:
-        plot = plot.split(',')
+        plots = plots.split(',')
 
-    ax = df[plot].plot(style='-+')
+    if stacked:
+        fig, axs = plt.subplots(nrows=len(plots))
+    
+        for i, plot in enumerate(plots):
+            ax = axs[i]
+            ax.plot(df.index, df[plot])
+            ax.set_xlabel(COL_T) #, fontdict=font)
+            ax.set_ylabel(plot)
+            #ax.set_title(plot)
+    else:
+        ax = df[plots].plot(style='-+')
+
     plt.show()
 
 if __name__ == '__main__':
