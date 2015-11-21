@@ -20,3 +20,12 @@ Linux package requirements
 Logging
 	use a config file for logger
 
+
+Install
+	sudo python setup.py install
+
+Scripts
+	python scripts/console.py
+
+Uninstall
+	sudo pip uninstall openchrono
