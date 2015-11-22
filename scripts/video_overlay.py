@@ -81,16 +81,19 @@ class VideoOverlay(object):
             record = Record(*dat)
             yield(record)
     
-    def _create_image(self, record):
-        logger.info(record)
-        #create new image
-        frame = Image.new("RGBA", (self.DATAFRAME_WIDTH, self.DATAFRAME_HEIGHT), self.BACKGROUND_COLOR)
-        frame_draw = ImageDraw.Draw(frame)
+    def _create_Image_and_ImageDraw(self):
+        """Create a PIL.Image.Image and a PIL.ImageDraw.ImageDraw"""
+        image = Image.new("RGBA", (self.DATAFRAME_WIDTH, self.DATAFRAME_HEIGHT), self.BACKGROUND_COLOR)
+        image_draw = ImageDraw.Draw(image)
+        return image, image_draw
+    
+    def _draw(self, image_draw, record):
+        logger.info("draw %r on %r" % (record, image_draw))
 
         #data
-        #draw_boxed_text(frame_draw, 10, 590, 230, 20, "Frame %d" % record.frame,self.FONT_PATH, self.TEXT_COLOR, self.BOX_COLOR)
+        #draw_boxed_text(image_draw, 10, 590, 230, 20, "Frame %d" % record.frame,self.FONT_PATH, self.TEXT_COLOR, self.BOX_COLOR)
         
-        return frame
+        return image_draw
         
     def _create_missing_frames(self, framenumber, framenumber_prev):
         """
@@ -116,8 +119,9 @@ class VideoOverlay(object):
                 self._create_missing_frames(framenumber, framenumber_prev)
                 filename_image = os.path.join(self.directory_images, self.images_fmt % framenumber)
                 logger.info("Create %r" % filename_image)
-                frame = self._create_image(record)
-                frame.save(filename_image, "JPEG", quality=100)
+                image, image_draw = self._create_Image_and_ImageDraw()
+                image_draw = self._draw(image_draw, record)
+                image.save(filename_image, "JPEG", quality=100)
                 framenumber_prev = framenumber
     
     def create_overlay_video(self):
