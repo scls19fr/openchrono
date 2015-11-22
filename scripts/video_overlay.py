@@ -33,16 +33,20 @@ class VideoOverlay(object):
     DATAFRAME_WIDTH = 545 #1920 #250
     DATAFRAME_HEIGHT = 800 #1080 #800
 
-    FONT_PATH = "/usr/share/fonts/truetype/freefont/FreeMonoBold.ttf"
+    FONT_PATH_DEFAULT = "/usr/share/fonts/truetype/freefont/FreeMonoBold.ttf"
     FONT_SIZE = 38
 
     TEXT_COLOR = "black"
     BACKGROUND_COLOR = "white"
     BOX_COLOR = "#c0c0c0"
     
-    def __init__(self, directory, filename_data_in='data.csv'):
+    def __init__(self, directory, filename_data_in='data.csv', font_path=FONT_PATH_DEFAULT):
         self.directory = directory
         self._init_filenames(directory, filename_data_in)
+        if font_path == '':
+            self.FONT_PATH = self.FONT_PATH_DEFAULT
+        else:
+            self.FONT_PATH = font_path
         self._init_images(directory)
         
         # Set fields to display
@@ -265,7 +269,8 @@ class MyVideoOverlay(VideoOverlay):
 @click.option('--filename-data-in', default='data.csv', help='Filename data input (CSV) - data.csv or data_postprocessed.csv')
 @click.option('--max-rows', default=20, help='Pandas display.max_rows')
 @click.option('--max-frames', default=-1, help='Maximum number of frame')
-def main(directory, filename_data_in, max_rows, max_frames):
+@click.option('--font', default='', help='Font path')
+def main(directory, filename_data_in, max_rows, max_frames, font):
     logging.basicConfig(level=logging.INFO)
     pd.set_option('display.max_rows', max_rows)
     
@@ -274,7 +279,7 @@ def main(directory, filename_data_in, max_rows, max_frames):
 
     directory = os.path.expanduser(directory)
 
-    overlay = MyVideoOverlay(directory, filename_data_in)
+    overlay = MyVideoOverlay(directory, filename_data_in, font)
     
     overlay.fields = ['frame', 'pos']
     #overlay.fields = ['t0', 'pos']
