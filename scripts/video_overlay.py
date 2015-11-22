@@ -97,9 +97,10 @@ class VideoOverlay(object):
         Create symbolic links between last frame and this frame
         (to avoid missing images because some frames are missing in data file)
         """
-        for framenumber_missing in range(framenumber_prev, framenumber):
+        for framenumber_missing in range(framenumber_prev + 1, framenumber):
             file1 = os.path.join(self.directory_images, self.images_fmt % framenumber_prev)
             file2 = os.path.join(self.directory_images, self.images_fmt % framenumber_missing)
+            logging.info("Create symlink between %s and %s" % (file1, file2))
             os.symlink(file1, file2)
         
         
