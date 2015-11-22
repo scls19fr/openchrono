@@ -30,8 +30,8 @@ def draw_boxed_text(imagedraw, x, y, width, height, text, text_font, text_color,
 
 
 class VideoOverlay(object):
-    DATAFRAME_WIDTH = 250
-    DATAFRAME_HEIGHT = 800
+    DATAFRAME_WIDTH = 545 #1920 #250
+    DATAFRAME_HEIGHT = 800 #1080 #800
 
     FONT_PATH = "/usr/share/fonts/truetype/freefont/FreeMonoBold.ttf"
     FONT_SIZE = 38
@@ -109,10 +109,10 @@ class VideoOverlay(object):
         
         This method might be overload to customize drawing
         """
-        logger.info("draw %r on %r" % (record, image_draw))
+        logger.debug("draw %r on %r" % (record, image_draw))
 
-        width, height = 530, 25
-        x0, y0 = 1, 590
+        width, height = 330, 25
+        x0, y0 = 10, 590
         
         x, y = x0, y0
         delta_x, delta_y = 0, 30
@@ -149,7 +149,7 @@ class VideoOverlay(object):
         for framenumber_missing in range(framenumber_prev + 1, framenumber):
             file1 = os.path.join(self.directory_images, self.images_fmt % framenumber_prev)
             file2 = os.path.join(self.directory_images, self.images_fmt % framenumber_missing)
-            logging.info("Create symlink between %s and %s" % (file1, file2))
+            logging.debug("Create symlink between %s and %s" % (file1, file2))
             os.symlink(file1, file2)
             if self._stop_frames(framenumber_missing, framenumber_max):
                 break
@@ -175,7 +175,7 @@ class VideoOverlay(object):
                 if self._stop_frames(framenumber, framenumber_max):
                     break
                 filename_image = os.path.join(self.directory_images, self.images_fmt % framenumber)
-                logger.info("Create %r" % filename_image)
+                logger.debug("Create %r" % filename_image)
                 image, image_draw = self._create_Image_and_ImageDraw()
                 image_draw = self._draw(image_draw, record)
                 image.save(filename_image, "JPEG", quality=100)
@@ -186,15 +186,13 @@ class VideoOverlay(object):
 
 
 class DataFormatter(object):
-    def __init__(self, keys=None):
+    def __init__(self):
         self.key_format_defaut = '%s'
         self.value_format_defaut = '%s'
         
         self.d_key_format = {}
         self.d_value_format = {}
-        
-        self._keys = keys
-      
+     
     def _get_format(self, key, d_fmt, fmt_default):
         try:
             return d_fmt[key]
@@ -229,11 +227,11 @@ class MyVideoOverlay(VideoOverlay):
         """Draw data (record) on a PIL.ImageDraw.ImageDraw
         and return this ImageDraw
         """
-        logger.info("draw %r on %r" % (record, image_draw))
+        logger.debug("draw %r on %r" % (record, image_draw))
 
         #draw data
-        width, height = 530, 25
-        x0, y0 = 1, 590
+        x0, y0 = 10, 590
+        width, height = self.DATAFRAME_WIDTH - x0, 25
         
         x, y = x0, y0
         delta_x, delta_y = 0, 30
@@ -243,6 +241,9 @@ class MyVideoOverlay(VideoOverlay):
         else:
             fields = self.fields
 
+        text = str(record.t)
+        draw_boxed_text(image_draw, x, y, width, height, text, self.font, self.TEXT_COLOR, self.BOX_COLOR)
+        y += delta_y
         for i, key in enumerate(fields):
             value = record.__dict__[key]
             text = self.data_formatter.text(key, value)
@@ -273,17 +274,17 @@ def main(directory, filename_data_in, max_rows, max_frames):
     
     #overlay.data_formatter = DataFormatter()
     
-    overlay.key_format_defaut = '%3s'
+    overlay.data_formatter.key_format_defaut = '%13s'
     #overlay.data_formatter.d_key_format = {
     #    'frame': '%s',
     #}
 
-    #overlay.value_format_defaut = '%s'
-    #overlay.data_formatter.d_value_format = {
-    #    'frame': '%d',
-    #    'pos': '%05.1f',
+    #overlay.data_formatter.value_format_defaut = '%s'
+    overlay.data_formatter.d_value_format = {
+        'frame': '%06d',
+        'pos': '%05.1f',
     #    't0': '%07.3f'
-    #}
+    }
 
 
     overlay.create_images(framenumber_max=max_frames)
