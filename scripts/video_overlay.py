@@ -186,12 +186,19 @@ class VideoOverlay(object):
 
 
 class DataFormatter(object):
-    def __init__(self):
-        self.key_format_defaut = '%s'
-        self.value_format_defaut = '%s'
+    def __init__(self, key_default='%s', value_default='%s', key=None, value=None):
+        self.key_format_default = key_default
+        self.value_format_default = value_default
         
-        self.d_key_format = {}
-        self.d_value_format = {}
+        if key is None:
+            self.d_key_format = {}
+        else:
+            self.d_key_format = key
+        
+        if value is None:
+            self.d_value_format = {}
+        else:
+            self.d_value_format = value
      
     def _get_format(self, key, d_fmt, fmt_default):
         try:
@@ -200,10 +207,10 @@ class DataFormatter(object):
             return fmt_default
     
     def _get_value_format(self, key):
-        return self._get_format(key, self.d_value_format, self.value_format_defaut)
+        return self._get_format(key, self.d_value_format, self.value_format_default)
     
     def _get_key_format(self, key):
-        return self._get_format(key, self.d_key_format, self.key_format_defaut)
+        return self._get_format(key, self.d_key_format, self.key_format_default)
     
     def get_formats(self, key):
         return self._get_key_format(key), self._get_value_format(key)
@@ -274,12 +281,12 @@ def main(directory, filename_data_in, max_rows, max_frames):
     
     #overlay.data_formatter = DataFormatter()
     
-    overlay.data_formatter.key_format_defaut = '%13s'
+    overlay.data_formatter.key_format_default = '%13s'
     #overlay.data_formatter.d_key_format = {
     #    'frame': '%s',
     #}
 
-    #overlay.data_formatter.value_format_defaut = '%s'
+    #overlay.data_formatter.value_format_default = '%s'
     overlay.data_formatter.d_value_format = {
         'frame': '%06d',
         'pos': '%05.1f',
