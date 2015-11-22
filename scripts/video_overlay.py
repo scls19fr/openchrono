@@ -30,7 +30,7 @@ def draw_boxed_text(imagedraw, x, y, width, height, text, text_font, text_color,
 
 
 class VideoOverlay(object):
-    DATAFRAME_WIDTH = 545 #1920 #250
+    DATAFRAME_WIDTH = 546 #1920 #250
     DATAFRAME_HEIGHT = 800 #1080 #800
 
     FONT_PATH_DEFAULT = "/usr/share/fonts/truetype/freefont/FreeMonoBold.ttf"
