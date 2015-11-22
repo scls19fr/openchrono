@@ -4,6 +4,7 @@
 import click
 
 import os
+import glob
 import logging
 import pandas as pd
 
@@ -16,15 +17,16 @@ COL_T = 't'
 logger = logging.getLogger(__name__)
 
 def draw_point(imagedraw, x, y, width, color):
-    imagedraw.ellipse((x-(width/2),y-(width/2),x+(width/2),y+(width/2)), color)
+    imagedraw.ellipse((x - width / 2, y - width / 2, x + width / 2, y + width / 2), color)
 
-def draw_boxed_text(imagedraw, x, y, width, height, text, textFont, textColour, BoxColour):
+def draw_boxed_text(imagedraw, x, y, width, height, text, text_font, text_color, box_color):
     #draw box
-    imagedraw.rectangle((x, y, x+width, y+height), outline=BoxColour, fill=BoxColour)
+    y_offset = 2
+    imagedraw.rectangle((x, y + y_offset, x + width, y + y_offset + height), outline=box_color, fill=box_color)
     #get size of text
-    textWidth,textHeight = imagedraw.textsize(text, font=textFont)
+    textWidth,textHeight = imagedraw.textsize(text, font=text_font)
     #draw text, putting the text in the middle of the box
-    imagedraw.text((x + 5, y + ((height - textHeight)/2)), text, font=textFont, fill=textColour)
+    imagedraw.text((x + 5, y + ((height - textHeight) / 2)), text, font=text_font, fill=text_color)
 
 
 class VideoOverlay(object):
@@ -41,19 +43,33 @@ class VideoOverlay(object):
     def __init__(self, directory, filename_data_in='data.csv'):
         self.directory = directory
         self._init_filenames(directory, filename_data_in)
-        self._init_images(directory)     
-
+        self._init_images(directory)
+        
+        # Set fields to display
+        # None: all fields
+        # []: no fields
+        # ['frame', 'pos']: display fields 'frame' and 'pos' (in this order)
+        self.fields = None
+        
+        # Default data formatter
+        self.data_formatter = DataFormatter()
+        
     def _init_filenames(self, directory, filename_data_in):
         self.filename_data_in = os.path.join(directory, filename_data_in)
         self.filename_video_in = os.path.join(directory, 'video.h264')
         self.filename_video_out = os.path.join(directory, 'video_overlay.h264')
         
     def _init_images(self, directory):
-        # create images directory
+        # create images directory or remove images
         self.directory_images = os.path.join(directory, 'images')
         if not os.path.exists(self.directory_images):
+            # create images directory
             os.makedirs(self.directory_images)
-            
+        else:        
+            # remove images previously created
+            for filename in glob.glob(os.path.join(self.directory_images, "*.jpg")):
+                os.remove(filename)
+        
         # set images format
         self.images_fmt = "%06d.jpg"
             
@@ -88,14 +104,44 @@ class VideoOverlay(object):
         return image, image_draw
     
     def _draw(self, image_draw, record):
+        """Draw data (record) on a PIL.ImageDraw.ImageDraw
+        and return this ImageDraw
+        
+        This method might be overload to customize drawing
+        """
         logger.info("draw %r on %r" % (record, image_draw))
 
-        #data
-        #draw_boxed_text(image_draw, 10, 590, 230, 20, "Frame %d" % record.frame,self.FONT_PATH, self.TEXT_COLOR, self.BOX_COLOR)
+        width, height = 530, 25
+        x0, y0 = 1, 590
         
+        x, y = x0, y0
+        delta_x, delta_y = 0, 30
+     
+        if self.fields is None:
+            fields = record._fields
+        else:
+            fields = self.fields
+
+        for i, key in enumerate(fields):
+            value = record.__dict__[key]
+            text = self.data_formatter.text(key, value)
+            draw_boxed_text(image_draw, x, y, width, height, text, self.font, self.TEXT_COLOR, self.BOX_COLOR)
+            y += delta_y
+ 
         return image_draw
         
-    def _create_missing_frames(self, framenumber, framenumber_prev):
+        return image_draw
+    
+    def _stop_frames_default(self, framenumber, framenumber_max):
+        return framenumber >= framenumber_max - 1
+
+    def _stop_frames_never(self, framenumber, framenumber_max):
+        return False
+
+    def _stop_frames(self, framenumber, framenumber_max):
+        return self._stop_frames_default(framenumber, framenumber_max)
+        
+    def _create_missing_frames(self, framenumber, framenumber_prev, framenumber_max):
         """
         Create symbolic links between last frame and this frame
         (to avoid missing images because some frames are missing in data file)
@@ -105,18 +151,29 @@ class VideoOverlay(object):
             file2 = os.path.join(self.directory_images, self.images_fmt % framenumber_missing)
             logging.info("Create symlink between %s and %s" % (file1, file2))
             os.symlink(file1, file2)
+            if self._stop_frames(framenumber_missing, framenumber_max):
+                break
         
         
-    def create_images(self):
+    def create_images(self, framenumber_max=None):
         """
         Create images with data and store them to 'images' directory
         """
+
+        if framenumber_max is None:
+            self._stop_frames = self._stop_frames_never
+        else:
+            self._stop_frames = self._stop_frames_default
+
         framenumber_prev = -1
         self._init_pil()
+            
         for record in self.records:
             framenumber = record.frame
             if framenumber > framenumber_prev:
-                self._create_missing_frames(framenumber, framenumber_prev)
+                self._create_missing_frames(framenumber, framenumber_prev, framenumber_max)
+                if self._stop_frames(framenumber, framenumber_max):
+                    break
                 filename_image = os.path.join(self.directory_images, self.images_fmt % framenumber)
                 logger.info("Create %r" % filename_image)
                 image, image_draw = self._create_Image_and_ImageDraw()
@@ -127,18 +184,109 @@ class VideoOverlay(object):
     def create_overlay_video(self):
         raise NotImplementedError("ToDo")
 
+
+class DataFormatter(object):
+    def __init__(self, keys=None):
+        self.key_format_defaut = '%s'
+        self.value_format_defaut = '%s'
+        
+        self.d_key_format = {}
+        self.d_value_format = {}
+        
+        self._keys = keys
+      
+    def _get_format(self, key, d_fmt, fmt_default):
+        try:
+            return d_fmt[key]
+        except KeyError:
+            return fmt_default
+    
+    def _get_value_format(self, key):
+        return self._get_format(key, self.d_value_format, self.value_format_defaut)
+    
+    def _get_key_format(self, key):
+        return self._get_format(key, self.d_key_format, self.key_format_defaut)
+    
+    def get_formats(self, key):
+        return self._get_key_format(key), self._get_value_format(key)
+     
+    def _key_value_format(self, key):
+        s_fmt = "%s: %s"
+        return s_fmt        
+
+    def text(self, key, value):
+        s_fmt = self._key_value_format(key)
+        s_key = self._get_key_format(key) % key
+        s_value = self._get_value_format(key) % value
+        text = s_fmt % (s_key, s_value)
+        return text
+
+class MyVideoOverlay(VideoOverlay):
+    def __init__(self, *args, **kwargs):
+        super(MyVideoOverlay, self).__init__(*args, **kwargs)
+    
+    def _draw(self, image_draw, record):
+        """Draw data (record) on a PIL.ImageDraw.ImageDraw
+        and return this ImageDraw
+        """
+        logger.info("draw %r on %r" % (record, image_draw))
+
+        #draw data
+        width, height = 530, 25
+        x0, y0 = 1, 590
+        
+        x, y = x0, y0
+        delta_x, delta_y = 0, 30
+    
+        if self.fields is None:
+            fields = record._fields
+        else:
+            fields = self.fields
+
+        for i, key in enumerate(fields):
+            value = record.__dict__[key]
+            text = self.data_formatter.text(key, value)
+            draw_boxed_text(image_draw, x, y, width, height, text, self.font, self.TEXT_COLOR, self.BOX_COLOR)
+            y += delta_y
+ 
+        return image_draw
+
+
 @click.command()
 @click.argument('directory')
 @click.option('--filename-data-in', default='data.csv', help='Filename data input (CSV) - data.csv or data_postprocessed.csv')
-@click.option('--max_rows', default=20, help='Pandas display.max_rows')
-def main(directory, filename_data_in, max_rows):
+@click.option('--max-rows', default=20, help='Pandas display.max_rows')
+@click.option('--max-frames', default=-1, help='Maximum number of frame')
+def main(directory, filename_data_in, max_rows, max_frames):
     logging.basicConfig(level=logging.INFO)
     pd.set_option('display.max_rows', max_rows)
+    
+    if max_frames == -1:
+        max_frames = None
 
     directory = os.path.expanduser(directory)
 
-    overlay = VideoOverlay(directory, filename_data_in)
-    overlay.create_images()
+    overlay = MyVideoOverlay(directory, filename_data_in)
+    
+    overlay.fields = ['frame', 'pos']
+    #overlay.fields = ['t0', 'pos']
+    
+    #overlay.data_formatter = DataFormatter()
+    
+    overlay.key_format_defaut = '%3s'
+    #overlay.data_formatter.d_key_format = {
+    #    'frame': '%s',
+    #}
+
+    #overlay.value_format_defaut = '%s'
+    #overlay.data_formatter.d_value_format = {
+    #    'frame': '%d',
+    #    'pos': '%05.1f',
+    #    't0': '%07.3f'
+    #}
+
+
+    overlay.create_images(framenumber_max=max_frames)
     
 if __name__ == '__main__':
     main()

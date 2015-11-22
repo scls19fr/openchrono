@@ -13,8 +13,8 @@ COL_T = 't'
 
 @click.command()
 @click.argument('directory')
-@click.option('--max_rows', default=20, help='Pandas display.max_rows')
-@click.option('--filename_out', default='data_postprocessed.csv', help='Filename output')
+@click.option('--max-rows', default=20, help='Pandas display.max_rows')
+@click.option('--filename-out', default='data_postprocessed.csv', help='Filename output')
 def main(directory, max_rows, filename_out):
     directory = os.path.expanduser(directory)
     filename_in = os.path.join(directory, 'data.csv')

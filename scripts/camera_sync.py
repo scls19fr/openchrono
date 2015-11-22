@@ -60,7 +60,7 @@ def main(vflip, hflip, video_stabilization, data_folder, data_filename, video_fi
             camera.start_preview()
         
         with DataBuffer(os.path.join(data_folder, data_filename)) as data:
-            data.columns = ["t", "frame", "position"]
+            data.columns = ["t", "frame", "pos"]
             
             camera.start_recording(os.path.join(data_folder, video_filename)) #, inline_headers=False)
             print("Recording - started pi camera")

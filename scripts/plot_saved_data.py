@@ -12,7 +12,7 @@ COL_T = 't'
 
 @click.command()
 @click.argument('directory')
-@click.option('--max_rows', default=20, help='Pandas display.max_rows')
+@click.option('--max-rows', default=20, help='Pandas display.max_rows')
 @click.option('--plots', default='', help='Plot (frame, position...)')
 @click.option('--stacked/--no-stacked', default=True, help='Stacked plot')
 @click.option('--style-line', default='b-', help='Style')
