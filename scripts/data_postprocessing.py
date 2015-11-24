@@ -32,14 +32,15 @@ def main(directory, max_rows, filename_out, index):
         frame_min = df['frame'].min()
         frame_max = df['frame'].max()
         df_grp = df.groupby('frame').mean()
+        sensors = df_grp.columns[1:] # every columns except 't' (sensors)
         df_grp['measures'] = True
         idx = pd.Index(np.arange(frame_min, frame_max + 1), name='frame')
         df = pd.DataFrame(columns = df_grp.columns, index=idx)
         df.loc[df_grp.index, :] = df_grp
         df[COL_T] = df[COL_T].fillna(method='ffill') # ToDo: use a linear regression instead
         df[COL_T] = pd.to_datetime(df[COL_T] / 1000, unit='us')
+        print(sensors)
         df['measures'] = df['measures'].fillna(False)
-        sensors = df.columns[1:] # every columns except 't' (sensors)
         df[sensors] = df[sensors].fillna(method='ffill')
 
     df['td'] = df[COL_T] - df[COL_T].shift(1)
