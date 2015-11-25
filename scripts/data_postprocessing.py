@@ -25,29 +25,36 @@ def main(directory, max_rows, filename_out, index):
 
     df = pd.read_csv(filename_in)
     df[COL_T] = pd.to_datetime(df[COL_T])
-    if index == 'time':
-        df = df.set_index(COL_T)
-    elif index == 'frame':
+    if index in ['frame', 'f']:
+        s_null_t = df[COL_T].isnull()
         df[COL_T] = df[COL_T].astype(np.int64)
         frame_min = df['frame'].min()
         frame_max = df['frame'].max()
         df_grp = df.groupby('frame').mean()
-        sensors = df_grp.columns[1:] # every columns except 't' (sensors)
+        sensors = df_grp.columns.drop(COL_T) # every columns except 't' (sensors)
         df_grp['measures'] = True
         idx = pd.Index(np.arange(frame_min, frame_max + 1), name='frame')
         df = pd.DataFrame(columns = df_grp.columns, index=idx)
         df.loc[df_grp.index, :] = df_grp
-        df[COL_T] = df[COL_T].fillna(method='ffill') # ToDo: use a linear regression instead
+        #df[COL_T] = df[COL_T].fillna(method='ffill') # interpolate with a linear regression instead
+        df[COL_T] = df[COL_T].astype(np.float64)
+        df[COL_T][s_null_t] = np.nan
+        df[COL_T] = df[COL_T].interpolate()
         df[COL_T] = pd.to_datetime(df[COL_T] / 1000, unit='us')
-        print(sensors)
         df['measures'] = df['measures'].fillna(False)
         df[sensors] = df[sensors].fillna(method='ffill')
+    elif index in ['time', 't']:
+        pass
+    else:
+        raise NotImplementedError("%r not supported" % index)
 
     df['td'] = df[COL_T] - df[COL_T].shift(1)
     td_unit = np.timedelta64(1, 's')
     df['td'] = df['td'].map(lambda x: x / td_unit)
     df['t0'] = df[COL_T].map(lambda x: x - df[COL_T][0])
     df['t0'] = df['t0'].map(lambda x: x / td_unit)
+    if index in ['time', 't']:
+        df = df.set_index(COL_T)
     print(df)
     filename_out = os.path.join(directory, filename_out)
     df.to_csv(filename_out)
