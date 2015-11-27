@@ -12,14 +12,15 @@ COL_T = 't'
 
 @click.command()
 @click.argument('directory')
+@click.option('--filename', default='data.csv', help='Filename (without directory)')
 @click.option('--max-rows', default=20, help='Pandas display.max_rows')
 @click.option('--plots', default='', help='Plot (frame, position...)')
 @click.option('--stacked/--no-stacked', default=True, help='Stacked plot')
 @click.option('--style-line', default='b-', help='Style')
 @click.option('--style-dots', default='g+', help='Style')
-def main(directory, max_rows, plots, stacked, style_line, style_dots):
+def main(directory, filename, max_rows, plots, stacked, style_line, style_dots):
     directory = os.path.expanduser(directory)
-    filename = os.path.join(directory, 'data.csv')
+    filename = os.path.join(directory, filename)
     print("Reading %r" % filename)
     pd.set_option('display.max_rows', max_rows)
 
