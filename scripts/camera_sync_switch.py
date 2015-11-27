@@ -37,7 +37,18 @@ class RecorderApp(object):
         self.baudrate = baudrate
         self.erase = erase
         
+        self.time_to_sleep = 0.01
+        
         self.recording = False
+        
+        self.sensors = []
+        
+        sensors_arduino = SensorsArduino(device=self.device, baudrate=self.baudrate, adc_channels_number=2)
+        print("capabilities: %s" % sensors_arduino.capabilities)
+        sensors_arduino.connect()
+        sensors_arduino.ADC[0].calibrate(lambda value: linear_function_with_limit(value, 520.0, 603.0, 0.0, 100.0))
+        
+        self.sensors.append(sensors_arduino)
 
     
     def loop(self):
@@ -48,17 +59,13 @@ class RecorderApp(object):
     
     
     def start_recording(self):
-        s_now = datetime.datetime.utcnow().strftime("%Y%m%d-%H%M%S-%f")
-
+        self.filename.new_recording()
+        
         if not self.erase:
-            data_folder = os.path.join(self.filename.directory, s_now)
+            data_folder = self.filename.recording_directory
             if not os.path.exists(data_folder):
                 os.makedirs(data_folder)
 
-        sensors00 = SensorsArduino(device=self.device, baudrate=self.baudrate, adc_channels_number=2)
-        print("capabilities: %s" % sensors00.capabilities)
-        sensors00.connect()
-        sensors00.ADC[0].calibrate(lambda value: linear_function_with_limit(value, 520.0, 603.0, 0.0, 100.0))
 
         
         #turn LED on
@@ -84,14 +91,14 @@ class RecorderApp(object):
                     #print(framenumber)
                     
                     to_append = False
-                    ai0 = sensors00.ADC[0]
-                    if sensors00.update() and not ai0.has_same_value: #and ai0.has_new_data: #ai0.has_same_raw_value
+                    ai0 = self.sensors[0].ADC[0]
+                    if self.sensors[0].update() and not ai0.has_same_value: #and ai0.has_new_data: #ai0.has_same_raw_value
                         to_append = True
                     
                     if to_append:
                         data.append(now, framenumber, ai0.value) # ai0.raw or ai0.value
                     
-                    time.sleep(0.01)
+                    time.sleep(self.time_to_sleep)
 
             except KeyboardInterrupt:
                 print("User Cancelled (Ctrl C)")
