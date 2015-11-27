@@ -11,19 +11,9 @@ import matplotlib.pyplot as plt
 
 COL_T = 't'
 COL_FRAME = 'frame'
-FILENAME_DATA = 'data.csv'
-FILENAME_VIDEO = 'video.h264'
 
-def get_filename(directory, filename):
-    directory = os.path.expanduser(directory)
-    filename = os.path.join(directory, filename)
-    return filename
+from openchrono.filename import FilenameFactory
 
-def get_data_filename(directory):
-    return get_filename(directory, FILENAME_DATA)
-
-def get_video_filename(directory):
-    return get_filename(directory, FILENAME_VIDEO)
 
 def postprocessing(df, col_t=COL_T, index='frame'):
     df[COL_T] = pd.to_datetime(df[COL_T])
@@ -74,7 +64,8 @@ def postprocessing(df, col_t=COL_T, index='frame'):
 @click.option('--filename-out', default='data_postprocessed.csv', help='Filename output')
 @click.option('--index', default='time', help="Set index to 'time' or to 'frame'")
 def main(directory, max_rows, filename_out, index):
-    filename_in = get_data_filename(directory)
+    filename = FilenameFactory(directory)
+    filename_in = filename.data
     index = index.lower()
     print("Reading %r" % filename_in)
     pd.set_option('display.max_rows', max_rows)
@@ -83,7 +74,7 @@ def main(directory, max_rows, filename_out, index):
     df, sensors = postprocessing(df, COL_T, index)
 
     print(df)
-    filename_out = os.path.join(directory, filename_out)
+    filename_out = filename.create(filename_out)
     df.to_csv(filename_out)
 
 
