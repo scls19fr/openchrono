@@ -8,11 +8,15 @@ import picamera
 import time
 import datetime
 
+import logging
+import traceback
+
 from openchrono.databuffer import DataBuffer
 from openchrono.arduino import SensorsArduino
 from openchrono.utils import linear_function_with_limit
 from openchrono.filename import FilenameFactory
 
+logger = logging.getLogger(__name__)
 
 VIDEO_FPS = 25
 VIDEO_HEIGHT = 1080
@@ -44,7 +48,7 @@ class RecorderApp(object):
         self.sensors = []
         
         sensors_arduino = SensorsArduino(device=self.device, baudrate=self.baudrate, adc_channels_number=2)
-        print("capabilities: %s" % sensors_arduino.capabilities)
+        logger.info("capabilities: %s" % sensors_arduino.capabilities)
         sensors_arduino.connect()
         sensors_arduino.ADC[0].calibrate(lambda value: linear_function_with_limit(value, 520.0, 603.0, 0.0, 100.0))
         
@@ -53,7 +57,7 @@ class RecorderApp(object):
     
     def loop(self):
         while(True):
-            print("loop")
+            logger.info("loop")
             self.start_recording()
             
     
@@ -80,15 +84,15 @@ class RecorderApp(object):
             data.columns = ["t", "frame", "pos"]
             
             self.camera.start_recording(self.filename.video) #, inline_headers=False)
-            print("Recording to %s" % self.filename.video)
+            logger.info("Recording to %s" % self.filename.video)
             try:
                 while(self.recording):
                     now = datetime.datetime.utcnow()
                     
-                    print("data in the loop @ %s" % now)
+                    logger.info("data in the loop @ %s" % now)
                     
                     framenumber = self.camera.frame.index
-                    #print(framenumber)
+                    #logger.info(framenumber)
                     
                     to_append = False
                     ai0 = self.sensors[0].ADC[0]
@@ -101,13 +105,13 @@ class RecorderApp(object):
                     time.sleep(self.time_to_sleep)
 
             except KeyboardInterrupt:
-                print("User Cancelled (Ctrl C)")
+                logger.info("User Cancelled (Ctrl C)")
             finally:
                 self.stop_recording()
 
     
     def stop_recording(self):
-        print("stop recording")
+        logger.info("stop recording")
         self.camera.stop_recording()
         if self.video_preview:
             self.camera.stop_preview()
@@ -133,6 +137,8 @@ class RecorderApp(object):
 def main(vflip, hflip, video_stabilization, data_folder, data_filename, video_filename, video_preview, 
     device, baudrate, erase, fps, height, width):
   
+    logging.basicConfig(level=logging.INFO)
+
     data_folder = os.path.expanduser(data_folder)
     
     filename = FilenameFactory(data_folder, data=data_filename, video=video_filename)

@@ -8,9 +8,14 @@ import picamera
 import time
 import datetime
 
+import logging
+import traceback
+
 from openchrono.databuffer import DataBuffer
 from openchrono.arduino import SensorsArduino
 from openchrono.utils import linear_function_with_limit
+
+logger = logging.getLogger(__name__)
 
 VIDEOFPS = 25
 VIDEOHEIGHT = 1080
@@ -29,6 +34,9 @@ VIDEOWIDTH = 1920
 @click.option('--erase/--no-erase', default=False, help='Erase data (video and csv)')
 def main(vflip, hflip, video_stabilization, data_folder, data_filename, video_filename, video_preview, 
     device, baudrate, erase):
+
+    logging.basicConfig(level=logging.INFO)
+
     s_now = datetime.datetime.utcnow().strftime("%Y%m%d-%H%M%S-%f")
     
     data_folder = os.path.expanduser(data_folder)
@@ -40,7 +48,7 @@ def main(vflip, hflip, video_stabilization, data_folder, data_filename, video_fi
 
 
     sensors00 = SensorsArduino(device=device, baudrate=baudrate, adc_channels_number=2)
-    print("capabilities: %s" % sensors00.capabilities)
+    logger.info("capabilities: %s" % sensors00.capabilities)
     sensors00.connect()
     sensors00.ADC[0].calibrate(lambda value: linear_function_with_limit(value, 520.0, 603.0, 0.0, 100.0))
 
@@ -63,15 +71,15 @@ def main(vflip, hflip, video_stabilization, data_folder, data_filename, video_fi
             data.columns = ["t", "frame", "pos"]
             
             camera.start_recording(os.path.join(data_folder, video_filename)) #, inline_headers=False)
-            print("Recording - started pi camera")
+            logger.info("Recording - started pi camera")
             try:
                 while(True):
                     now = datetime.datetime.utcnow()
                     
-                    print("data in the loop @ %s" % now)
+                    logger.info("data in the loop @ %s" % now)
                     
                     framenumber = camera.frame.index
-                    print(framenumber)
+                    logger.info(framenumber)
                     
                     to_append = False
                     ai0 = sensors00.ADC[0]
@@ -84,11 +92,11 @@ def main(vflip, hflip, video_stabilization, data_folder, data_filename, video_fi
                     time.sleep(0.01)
 
             except KeyboardInterrupt:
-                print("User Cancelled (Ctrl C)")
+                logger.info("User Cancelled (Ctrl C)")
                 camera.stop_recording()
                 if video_preview:
                     camera.stop_preview()
 
-if __name__ == "__main__":
+if __name__ == "__main__":  
     main()
 
