@@ -36,11 +36,19 @@ class DisplayVideoMainWindow(QtGui.QMainWindow):
         logger.info("Reading %r" % self.data_filename)
         self.df = pd.read_csv(self.data_filename)
         self.df, self.sensors = postprocessing(self.df, 't', 'frame')
+        frame_min, frame_max = self.df.index.min(), self.df.index.max()
+        
+        self.horizontalSlider.setMinimum(frame_min)
+        self.horizontalSlider.setMaximum(frame_max)
+        self.horizontalSlider.valueChanged.connect(self.slider_changed)
 
         print(self.df)
 
-    def update(self):
-        pass
+    def slider_changed(self, frame):
+        print("go to frame %d" % frame)
+
+    def update(self, *args, **kwargs):
+        print("update")
 
 
 class DisplayVideoApp(QtGui.QApplication):

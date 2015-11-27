@@ -72,7 +72,7 @@ def postprocessing(df, col_t=COL_T, index='frame'):
 @click.argument('directory')
 @click.option('--max-rows', default=20, help='Pandas display.max_rows')
 @click.option('--filename-out', default='data_postprocessed.csv', help='Filename output')
-@click.option('--index', default='time', help="Set index to 'time' or to 'frame'")
+@click.option('--index', default='frame', help="Set index to 'time' or to 'frame'")
 def main(directory, max_rows, filename_out, index):
     filename_in = get_data_filename(directory)
     index = index.lower()
