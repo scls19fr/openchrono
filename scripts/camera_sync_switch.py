@@ -128,7 +128,7 @@ VIDEO_WIDTH = 1920
 
 
 class RecordingTask(threading.Thread):
-    def __init__(self, camera_settings, sensors, filename, video_preview, erase, time_to_sleep):
+    def __init__(self, camera_settings, sensors, led, filename, video_preview, erase, lag, time_to_sleep):
         threading.Thread.__init__(self)
         
         self.camera = picamera.PiCamera()
@@ -136,10 +136,13 @@ class RecordingTask(threading.Thread):
         
         self.sensors = sensors
         
+        self.led = led
+        
         self.filename = filename
         self.video_preview = video_preview
         self.erase = erase
         
+        self.lag = lag
         self.time_to_sleep = time_to_sleep
         
         self.active = False
@@ -156,6 +159,10 @@ class RecordingTask(threading.Thread):
         
         if self.video_preview:
             self.camera.start_preview()
+        
+        if self.lag > 0:
+            time.sleep(self.lag)
+        self.led.blink(times=0, on_delay=0.8, off_delay=0.2) # blink foreever
         
         with DataBuffer(self.filename.data) as data:
             data.columns = ["t", "frame", "pos"]
@@ -205,16 +212,12 @@ class Settings(object):
     
     def apply_to(self, obj):
         for key, value in self._settings.iteritems():
-            try:
-                setattr(obj, key, value)
-                print(key, value)
-            except Exception as e:
-                #logging.error(traceback.format_exc())
-                raise e
+            setattr(obj, key, value)
 
 class RecorderApp(object):
     def __init__(self, filename, vflip, hflip, video_stabilization, 
-                 video_preview, device, baudrate, erase, fps, height, width):
+                 video_preview, device, baudrate, erase, fps, height, width, 
+                 lag):
         self.filename = filename  # filename factory (to create filenames)
         
         self.board = pingo.detect.get_board()
@@ -224,7 +227,9 @@ class RecorderApp(object):
 
         btn_pin = self.board.pins[7]
         self.switch = Switch(btn_pin)
-        self.switch.set_callback_up(self.toggle_recording)
+        
+        self.switch.set_callback_down(self.switch_released)
+        self.switch.set_callback_up(self.switch_pressed)
         
         
         self.camera_settings = Settings(
@@ -241,6 +246,7 @@ class RecorderApp(object):
         self.baudrate = baudrate
         self.erase = erase
         
+        self.lag = lag
         self.time_to_sleep = 0.01
         
         self.recording = False
@@ -255,32 +261,45 @@ class RecorderApp(object):
         
         self.sensors.append(sensors_arduino)
 
+    def switch_pressed(self):
+        logger.debug("switch pressed")
 
-    def toggle_recording(self):
-        print("switch press")
-        self.recording = not self.recording
-
+    def switch_released(self):
+        logger.debug("switch released")
         if self.recording:
-            print("Start recording")
-            self.recording_task = RecordingTask(self.camera_settings, self.sensors, self.filename, 
-                self.video_preview, self.erase, self.time_to_sleep)
-            self.recording_task.start()
-            self.led.blink(times=0, on_delay=0.8, off_delay=0.2) # blink foreever
-
-
+            self.stop_recording()
         else:
-            print("Stop recording")
-            self.recording_task.terminate()
-            self.led.stop() # stop blinking
-            #while(self.led.blinking):
-            #    print("waiting led stop blinking")
-            #    time.sleep(0.5)
-            #    self.led.stop()
-            self.led.on()  # ToFix !!!
+            self.start_recording()
+
+    def start_recording(self):
+        print("Start recording")
+        self.recording = True
+        self.recording_task = RecordingTask(self.camera_settings, self.sensors, self.led, self.filename, 
+            self.video_preview, self.erase, self.lag, self.time_to_sleep)
+        self.recording_task.start()
+        if self.lag > 0:
+            raise NotImplementedError("Experimental - buggy! when stop recording before lag expired")
+            self.led.blink(times=0, on_delay=0.8/8, off_delay=0.2/8) # blink (quickly) foreever (up to lag/delay expired)
+
+    def stop_recording(self):
+        print("Stop recording")
+        self.recording = False
+        self.recording_task.terminate()
+        self.led.stop() # stop blinking
+        while(self.led.blinking):
+            print("waiting led stop blinking")
+            time.sleep(0.5)
+            self.led.stop()
+        self.led.on()  # ToFix !!!
 
     def init_led_and_switch(self):
         self.led.on()
+        self.led.blink(times=5, on_delay=0.1, off_delay=0.3)
+        while(self.led.blinking):
+            print("waiting led stop blinking")
+            time.sleep(0.5)
         self.switch.start()
+        
     
     def loop(self):
         self.init_led_and_switch()
@@ -300,8 +319,13 @@ class RecorderApp(object):
             self.recording_task.terminate()
 
         self.led.off()
+        self.led.blink(times=5, on_delay=0.3, off_delay=0.1)
+        while(self.led.blinking):
+            time.sleep(1)
+        self.led.off()
+        
         self.switch.stop()
-        self.led.stop()
+        
         self.board.cleanup()
         
         logger.info("closed RecorderApp")
@@ -321,8 +345,9 @@ class RecorderApp(object):
 @click.option('--fps', default=VIDEO_FPS, help='Frame per second (default: %d)' % VIDEO_FPS)
 @click.option('--height', default=VIDEO_HEIGHT, help='Video height (default: %d)' % VIDEO_HEIGHT)
 @click.option('--width', default=VIDEO_WIDTH, help='Video width (default: %d)' % VIDEO_WIDTH)
+@click.option('--lag', default=0, help='Lag (delay) - before recording')
 def main(vflip, hflip, video_stabilization, data_folder, data_filename, video_filename, video_preview, 
-    device, baudrate, erase, fps, height, width):
+    device, baudrate, erase, fps, height, width, lag):
   
     logging.basicConfig(level=logging.INFO)
 
@@ -331,7 +356,7 @@ def main(vflip, hflip, video_stabilization, data_folder, data_filename, video_fi
     filename = FilenameFactory(data_folder, data=data_filename, video=video_filename)
     
     app = RecorderApp(filename, vflip, hflip, video_stabilization, 
-        video_preview, device, baudrate, erase, fps, height, width)
+        video_preview, device, baudrate, erase, fps, height, width, lag)
     
     app.loop()
     #app.recording = True
