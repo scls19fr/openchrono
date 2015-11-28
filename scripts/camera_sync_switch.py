@@ -16,6 +16,11 @@ from openchrono.arduino import SensorsArduino
 from openchrono.utils import linear_function_with_limit
 from openchrono.filename import FilenameFactory
 
+import pingo
+from pingo.parts.led import Led
+from pingo.parts.button import Switch
+import threading
+
 logger = logging.getLogger(__name__)
 
 VIDEO_FPS = 25
@@ -23,10 +28,86 @@ VIDEO_HEIGHT = 1080
 VIDEO_WIDTH = 1920
 
 
+class RecordingTask(threading.Thread):
+    def __init__(self, camera, sensors, filename, video_preview, erase, time_to_sleep):
+        threading.Thread.__init__(self)
+        
+        self.camera = camera
+        self.sensors = sensors
+        
+        self.filename = filename
+        self.video_preview = video_preview
+        self.erase = erase
+        
+        self.time_to_sleep = time_to_sleep
+        
+        self.active = False
+    
+    def run(self):
+        self.active = True
+
+        self.filename.new_recording()
+        
+        if not self.erase:
+            data_folder = self.filename.recording_directory
+            if not os.path.exists(data_folder):
+                os.makedirs(data_folder)
+        
+        if self.video_preview:
+            self.camera.start_preview()
+        
+        with DataBuffer(self.filename.data) as data:
+            data.columns = ["t", "frame", "pos"]
+            
+            self.camera.start_recording(self.filename.video) #, inline_headers=False)
+            logger.info("Recording to %s" % self.filename.video)
+            while(self.active):
+                now = datetime.datetime.utcnow()
+                
+                logger.info("data in the loop @ %s" % now)
+                
+                framenumber = self.camera.frame.index
+                #logger.info(framenumber)
+                
+                to_append = False
+                ai0 = self.sensors[0].ADC[0]
+                if self.sensors[0].update() and not ai0.has_same_value: #and ai0.has_new_data: #ai0.has_same_raw_value
+                    to_append = True
+                
+                if to_append:
+                    data.append(now, framenumber, ai0.value) # ai0.raw or ai0.value
+                
+                time.sleep(self.time_to_sleep)
+
+            self._when_stopped()
+
+
+    def terminate(self):
+        self.active = False
+    
+    def _when_stopped(self):
+        logger.info(" Stop recording %s" % self.filename.video)
+        self.camera.stop_recording()
+        self.recording = False
+        if self.video_preview:
+            self.camera.stop_preview()
+        logger.info(" stopped")        
+        
+
+
 class RecorderApp(object):
     def __init__(self, filename, vflip, hflip, video_stabilization, 
                  video_preview, device, baudrate, erase, fps, height, width):
         self.filename = filename  # filename factory (to create filenames)
+        
+        self.board = pingo.detect.get_board()
+
+        led_pin = self.board.pins[13]
+        self.led = Led(led_pin)
+
+        btn_pin = self.board.pins[7]
+        self.switch = Switch(btn_pin)
+        self.switch.set_callback_up(self.toggle_recording)
         
         self.camera = picamera.PiCamera()
         
@@ -44,6 +125,7 @@ class RecorderApp(object):
         self.time_to_sleep = 0.01
         
         self.recording = False
+        self.recording_task = None
         
         self.sensors = []
         
@@ -54,71 +136,58 @@ class RecorderApp(object):
         
         self.sensors.append(sensors_arduino)
 
+
+    def toggle_recording(self):
+        print("switch press")
+        self.recording = not self.recording
+
+        if self.recording:
+            print("Start recording")
+            self.recording_task = RecordingTask(self.camera, self.sensors, self.filename, 
+                self.video_preview, self.erase, self.time_to_sleep)
+            self.recording_task.start()
+            self.led.blink(times=0, on_delay=0.8, off_delay=0.2) # blink foreever
+
+        else:
+            print("Stop recording")
+            self.recording_task.terminate()
+            self.led.stop() # stop blinking
+            #while(self.led.blinking):
+            #    print("waiting led stop blinking")
+            #    time.sleep(0.5)
+            #    self.led.stop()
+            self.led.on()  # ToFix !!!
+
+    def init_led_and_switch(self):
+        self.led.on()        
+        self.switch.start()
     
     def loop(self):
-        while(True):
-            logger.info("loop")
-            self.start_recording()
+        self.init_led_and_switch()
+        try:
+            while(True):
+                logger.info("mainloop")
+                time.sleep(3)
+        except KeyboardInterrupt:
+            logger.info("User Cancelled (Ctrl C)")
+        finally:
+            self.close()
             
-    
-    
-    def start_recording(self):
-        self.filename.new_recording()
         
-        if not self.erase:
-            data_folder = self.filename.recording_directory
-            if not os.path.exists(data_folder):
-                os.makedirs(data_folder)
-
-
-        
-        #turn LED on
-        #led.on()
-
-        #setup camera
-
-        if self.video_preview:
-            self.camera.start_preview()
-        
-        with DataBuffer(self.filename.data) as data:
-            data.columns = ["t", "frame", "pos"]
-            
-            self.camera.start_recording(self.filename.video) #, inline_headers=False)
-            logger.info("Recording to %s" % self.filename.video)
-            try:
-                while(self.recording):
-                    now = datetime.datetime.utcnow()
-                    
-                    logger.info("data in the loop @ %s" % now)
-                    
-                    framenumber = self.camera.frame.index
-                    #logger.info(framenumber)
-                    
-                    to_append = False
-                    ai0 = self.sensors[0].ADC[0]
-                    if self.sensors[0].update() and not ai0.has_same_value: #and ai0.has_new_data: #ai0.has_same_raw_value
-                        to_append = True
-                    
-                    if to_append:
-                        data.append(now, framenumber, ai0.value) # ai0.raw or ai0.value
-                    
-                    time.sleep(self.time_to_sleep)
-
-            except KeyboardInterrupt:
-                logger.info("User Cancelled (Ctrl C)")
-            finally:
-                self.stop_recording()
-
-    
-    def stop_recording(self):
-        logger.info("stop recording")
-        self.camera.stop_recording()
-        if self.video_preview:
-            self.camera.stop_preview()
-        self.camera.close()
-    
     def close(self):
+        if self.recording:
+            self.recording = False
+            self.recording_task.terminate()
+
         self.camera.close()
+
+        self.led.off()
+        self.switch.stop()
+        self.led.stop()
+        self.board.cleanup()
+        
+        logger.info("closed RecorderApp")
+
 
 @click.command()
 @click.option('--vflip/--no-vflip', default=False, help="Video vertical flip")
@@ -146,9 +215,9 @@ def main(vflip, hflip, video_stabilization, data_folder, data_filename, video_fi
     app = RecorderApp(filename, vflip, hflip, video_stabilization, 
         video_preview, device, baudrate, erase, fps, height, width)
     
-    #app.loop()
-    app.recording = True
-    app.start_recording()
+    app.loop()
+    #app.recording = True
+    #app.start_recording()
     
 
 
